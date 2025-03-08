@@ -1,0 +1,42 @@
+#include <Wire.h>  // LibrerÃ­a para la comunicaciÃ³n I2C
+#include <Adafruit_VL53L0X.h>  // LibrerÃ­a para manejar el sensor VL53L0X
+
+Adafruit_VL53L0X sensor = Adafruit_VL53L0X();  // Se crea un objeto del sensor
+
+// ParÃ¡metros del filtro EMA
+float alpha = 0.25;  // Factor de suavizado (ajustable)
+float filteredDistance = 0;  // Valor inicial de la distancia filtrada
+
+void setup() {
+  Serial.begin(9600);  // Inicia la comunicaciÃ³n serial a 9600 baudios
+  Wire.begin();  // Inicia la comunicaciÃ³n I2C
+
+  if (!sensor.begin()) {  // Verifica si el sensor estÃ¡ conectado
+    Serial.println("Error: No se detecta VL53L0X");  // Mensaje de error si el sensor no responde
+    while (1);  // Bucle infinito para detener la ejecuciÃ³n si hay error
+  }
+}
+
+void loop() {
+  VL53L0X_RangingMeasurementData_t measure;  // Estructura para almacenar la mediciÃ³n
+
+  sensor.rangingTest(&measure, false);  // Realiza una mediciÃ³n de distancia
+
+  if (measure.RangeStatus != 4) {  // Si el estado no es error (4), procesa la mediciÃ³n
+    float rawDistance = measure.RangeMilliMeter;  // Obtiene la distancia en milÃ­metros
+
+    // AplicaciÃ³n del filtro EMA para suavizar los datos
+    filteredDistance = (alpha * rawDistance) + ((1 - alpha) * filteredDistance);
+
+    // Imprime los valores en el monitor serie
+    Serial.print("Distancia sin filtrar: ");
+    Serial.print(rawDistance);
+    Serial.print(" mm | Distancia filtrada: ");
+    Serial.print(filteredDistance);
+    Serial.println(" mm");
+  } else {
+    Serial.println("Error en la mediciÃ³n");  // Mensaje de error si la mediciÃ³n no es vÃ¡lida
+  }
+
+  delay(500);  // Espera 500 ms antes de la siguiente mediciÃ³n
+}
